@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAP Fiori Launchpad – Eli Lilly Enterprise Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "72", Arial, sans-serif;
+      background: #F2F2F2;
+      color: #32363A;
+      min-height: 100vh;
+    }
+
+    /* ── Utilities ─────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    .page { min-height: 100vh; }
+
+    /* ── Top Navigation Bar ────────────────────────────────── */
+    .nav-bar {
+      background: #fff;
+      border-bottom: 1px solid #D9D9D9;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 4px rgba(0,0,0,.08);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .sap-logo-small {
+      background: #0070F2;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #32363A;
+      white-space: nowrap;
+    }
+    .nav-search {
+      flex: 1;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .nav-search input {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #D9D9D9;
+      border-radius: 4px;
+      padding: 0 12px;
+      font-size: 14px;
+      outline: none;
+      background: #F5F5F5;
+      transition: border-color .15s;
+    }
+    .nav-search input:focus { border-color: #0070F2; background: #fff; }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .nav-icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #32363A;
+      transition: background .15s;
+    }
+    .nav-icon-btn:hover { background: #F2F2F2; }
+    .avatar-btn {
+      background: #0070F2;
+      border: none;
+      cursor: pointer;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      position: relative;
+    }
+    .dropdown-menu {
+      position: absolute;
+      top: 44px;
+      right: 16px;
+      background: #fff;
+      border: 1px solid #D9D9D9;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      min-width: 160px;
+      z-index: 200;
+    }
+    .dropdown-menu button {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      text-align: left;
+      background: none;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      color: #32363A;
+    }
+    .dropdown-menu button:hover { background: #F5F5F5; }
+
+    /* ── Cards ─────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      padding: 16px;
+    }
+
+    /* ── Breadcrumb ─────────────────────────────────────────── */
+    .breadcrumb {
+      font-size: 13px;
+      color: #6A6D70;
+      padding: 10px 24px 0;
+    }
+    .breadcrumb span { color: #0070F2; cursor: pointer; }
+    .breadcrumb span:hover { text-decoration: underline; }
+
+    /* ── Page content wrapper ───────────────────────────────── */
+    .content {
+      padding: 16px 24px 32px;
+    }
+
+    /* ── Buttons ────────────────────────────────────────────── */
+    .btn {
+      height: 36px;
+      padding: 0 18px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: filter .15s, box-shadow .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { filter: brightness(.94); }
+    .btn-primary { background: #0070F2; color: #fff; border-color: #0070F2; }
+    .btn-success { background: #107E3E; color: #fff; border-color: #107E3E; }
+    .btn-danger-outline { background: #fff; color: #BB0000; border-color: #BB0000; }
+    .btn-secondary { background: #fff; color: #32363A; border-color: #D9D9D9; }
+    .btn-outline { background: #fff; color: #0070F2; border-color: #0070F2; }
+    .btn-lg {
+      height: 44px;
+      padding: 0 28px;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+
+    /* ── Status badges ──────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-success { background: #DAEEE3; color: #107E3E; }
+    .badge-danger  { background: #FADDDC; color: #BB0000; }
+    .badge-warning { background: #FEF0DB; color: #E9730C; }
+
+    /* ── Form elements ──────────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6A6D70;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .form-control {
+      width: 100%;
+      height: 36px;
+      border: 1px solid #D9D9D9;
+      border-radius: 4px;
+      padding: 0 10px;
+      font-size: 14px;
+      color: #32363A;
+      background: #fff;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .form-control:focus { border-color: #0070F2; box-shadow: 0 0 0 2px rgba(0,112,242,.12); }
+    .form-control[readonly] { background: #F5F5F5; color: #6A6D70; cursor: default; }
+    textarea.form-control { height: 90px; padding: 8px 10px; resize: vertical; }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #107E3E;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+      transition: transform .3s ease;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* =====================================================
+       PAGE 1 – Login
+    ===================================================== */
+    #page-login {
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 340px;
+    }
+    .sap-logo-large {
+      background: #0070F2;
+      color: #fff;
+      font-weight: 800;
+      font-size: 32px;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .login-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #32363A;
+    }
+    .login-subtitle {
+      font-size: 14px;
+      color: #6A6D70;
+      margin-bottom: 8px;
+    }
+    .login-btn {
+      width: 100%;
+      height: 44px;
+      background: #0070F2;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background .15s;
+    }
+    .login-btn:hover { background: #0057C2; }
+    .login-secured {
+      font-size: 12px;
+      color: #6A6D70;
+      margin-top: 4px;
+    }
+    /* spinner */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* =====================================================
+       PAGE 2 – Launchpad
+    ===================================================== */
+    .launchpad-section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #32363A;
+    }
+    .tiles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .tile {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      padding: 20px 16px;
+      cursor: pointer;
+      transition: box-shadow .2s, transform .2s;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+    .tile:hover {
+      box-shadow: 0 6px 20px rgba(0,0,0,.14);
+      transform: translateY(-2px);
+      border-color: #0070F2;
+    }
+    .tile-icon { font-size: 32px; margin-bottom: 10px; }
+    .tile-title { font-size: 15px; font-weight: 600; color: #32363A; margin-bottom: 4px; }
+    .tile-subtitle { font-size: 13px; color: #6A6D70; }
+
+    /* =====================================================
+       PAGE 3 – Equipment List
+    ===================================================== */
+    .filter-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .filter-bar-actions {
+      display: flex;
+      gap: 8px;
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+    }
+    .table-wrapper { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead tr { background: #F5F5F5; border-bottom: 2px solid #D9D9D9; }
+    thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #6A6D70;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #F0F0F0; transition: background .12s; }
+    tbody tr:hover { background: #F7F9FF; }
+    tbody td { padding: 10px 12px; }
+
+    /* =====================================================
+       PAGE 4 – Equipment Detail
+    ===================================================== */
+    .page-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #32363A;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 24px;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #32363A;
+      margin-bottom: 12px;
+    }
+    .attachments-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .attachment-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F5F5F5;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    .attachment-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #BB0000;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    /* =====================================================
+       PAGE 5 – Post Confirmation Modal
+    ===================================================== */
+    #page-post-confirmation {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+    .modal-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 28px 32px;
+      width: 480px;
+      max-width: 95vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,.2);
+    }
+    .modal-warning-icon { font-size: 40px; margin-bottom: 8px; }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #32363A; }
+    .modal-subtitle { font-size: 14px; color: #6A6D70; margin-bottom: 16px; }
+    .summary-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-bottom: 16px; }
+    .summary-table td { padding: 5px 8px; }
+    .summary-table td:first-child { font-weight: 600; color: #6A6D70; width: 45%; }
+    .summary-table tr { border-bottom: 1px solid #F0F0F0; }
+    .warning-text {
+      background: #FEF0DB;
+      border: 1px solid #E9730C;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #E9730C;
+      margin-bottom: 20px;
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* =====================================================
+       PAGE 6 – Success
+    ===================================================== */
+    #page-success {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px;
+    }
+    .success-icon { font-size: 72px; margin-bottom: 16px; }
+    .success-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #107E3E;
+      margin-bottom: 20px;
+    }
+    .success-card {
+      background: #DAEEE3;
+      border: 1px solid #107E3E;
+      border-radius: 8px;
+      padding: 20px 28px;
+      width: 420px;
+      max-width: 100%;
+      margin-bottom: 24px;
+    }
+    .success-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(16,126,62,.2);
+    }
+    .success-row:last-child { border-bottom: none; }
+    .success-row span:first-child { font-weight: 600; color: #107E3E; }
+    .success-buttons { display: flex; gap: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- ── TOAST ──────────────────────────────────────────────── -->
+<div id="toast">Changes saved successfully</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 1 – Login
+══════════════════════════════════════════════════════════ -->
+<div id="page-login" class="page" style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+  <div id="page-identifier" data-page="login" class="hidden"></div>
+  <div class="login-box">
+    <div class="sap-logo-large">SAP</div>
+    <div class="login-title">SAP Fiori Launchpad</div>
+    <div class="login-subtitle">Eli Lilly Enterprise Portal</div>
+    <button
+      class="login-btn"
+      aria-label="sso-login-button"
+      id="sso-login-btn"
+      onclick="handleSSOLogin()"
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0">
+        <rect width="9" height="9" fill="#F25022"/>
+        <rect x="11" width="9" height="9" fill="#7FBA00"/>
+        <rect y="11" width="9" height="9" fill="#00A4EF"/>
+        <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+      </svg>
+      Sign in with Microsoft SSO
+    </button>
+    <div class="login-secured">🔒 Secured by Microsoft Azure AD</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 2 – Fiori Launchpad
+══════════════════════════════════════════════════════════ -->
+<div id="page-launchpad" class="page hidden">
+  <div id="page-identifier" data-page="launchpad" class="hidden"></div>
+  <!-- Nav -->
+  <nav class="nav-bar">
+    <div class="nav-brand">
+      <div class="sap-logo-small">SAP</div>
+      <span class="nav-title">Fiori Launchpad</span>
+    </div>
+    <div class="nav-search">
+      <input type="text" aria-label="global-search" placeholder="🔍  Search" />
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" title="Notifications">🔔</button>
+      <button class="nav-icon-btn" title="Help">❓</button>
+      <div style="position:relative">
+        <button
+          class="avatar-btn"
+          aria-label="user-menu-button"
+          id="avatar-btn"
+          onclick="toggleUserMenu()"
+        >DU</button>
+        <div id="user-dropdown" class="dropdown-menu hidden">
+          <button onclick="handleSignOut()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <!-- Content -->
+  <div class="content">
+    <div class="launchpad-section-title">My Home</div>
+    <div class="tiles-grid">
+      <div class="tile" aria-label="tile-equipment-management" onclick="showPage('equipment-list')">
+        <div class="tile-icon">⚙️</div>
+        <div class="tile-title">Equipment Management</div>
+        <div class="tile-subtitle">Manage plant equipment</div>
+      </div>
+      <div class="tile" aria-label="tile-purchase-orders" onclick="showPage('purchase-orders-stub')">
+        <div class="tile-icon">🛒</div>
+        <div class="tile-title">Purchase Orders</div>
+        <div class="tile-subtitle">Create and manage POs</div>
+      </div>
+      <div class="tile" aria-label="tile-invoice-processing" onclick="showPage('invoice-stub')">
+        <div class="tile-icon">📄</div>
+        <div class="tile-title">Invoice Processing</div>
+        <div class="tile-subtitle">Process vendor invoices</div>
+      </div>
+      <div class="tile" aria-label="tile-service-documents" onclick="showPage('service-stub')">
+        <div class="tile-icon">🔧</div>
+        <div class="tile-title">Service Documents</div>
+        <div class="tile-subtitle">Manage service records</div>
+      </div>
+      <div class="tile" aria-label="tile-reports" onclick="showPage('reports-stub')">
+        <div class="tile-icon">📊</div>
+        <div class="tile-title">Reports & Analytics</div>
+        <div class="tile-subtitle">View business reports</div>
+      </div>
+      <div class="tile" aria-label="tile-user-settings" onclick="showPage('settings-stub')">
+        <div class="tile-icon">👤</div>
+        <div class="tile-title">User Settings</div>
+        <div class="tile-subtitle">Manage preferences</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 3 – Equipment Management List
+══════════════════════════════════════════════════════════ -->
+<div id="page-equipment-list" class="page hidden">
+  <div id="page-identifier" data-page="equipment-list" class="hidden"></div>
+  <!-- Nav -->
+  <nav class="nav-bar">
+    <div class="nav-brand">
+      <div class="sap-logo-small">SAP</div>
+      <span class="nav-title">Fiori Launchpad</span>
+    </div>
+    <div class="nav-search">
+      <input type="text" aria-label="global-search" placeholder="🔍  Search" />
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" title="Notifications">🔔</button>
+      <button class="nav-icon-btn" title="Help">❓</button>
+      <div style="position:relative">
+        <button class="avatar-btn" aria-label="user-menu-button" onclick="toggleUserMenu()">DU</button>
+        <div id="user-dropdown-eq" class="dropdown-menu hidden">
+          <button onclick="handleSignOut()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <!-- Breadcrumb -->
+  <div class="breadcrumb" aria-label="breadcrumb">
+    <span onclick="showPage('launchpad')">Home</span> &rsaquo; Equipment Management
+  </div>
+  <div class="content">
+    <div class="page-header-row">
+      <div class="page-title">Equipment Management</div>
+    </div>
+    <!-- Filter bar -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="filter-bar">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Equipment Number</label>
+          <input
+            class="form-control"
+            aria-label="equipment-number-input"
+            placeholder="Enter Equipment No."
+            type="text"
+          />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Plant</label>
+          <select class="form-control" aria-label="plant-dropdown">
+            <option value="">All Plants</option>
+            <option value="PLANT-001">PLANT-001</option>
+            <option value="PLANT-002">PLANT-002</option>
+            <option value="PLANT-003">PLANT-003</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Status</label>
+          <select class="form-control" aria-label="status-dropdown">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="maintenance">Under Maintenance</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Date From</label>
+          <input class="form-control" aria-label="date-from-input" type="date" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Date To</label>
+          <input class="form-control" aria-label="date-to-input" type="date" />
+        </div>
+        <div class="filter-bar-actions">
+          <button class="btn btn-secondary" aria-label="reset-button" onclick="resetFilters()">Reset</button>
+          <button class="btn btn-primary" aria-label="search-button">🔍 Search</button>
+        </div>
+      </div>
+    </div>
+    <!-- Results table -->
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Equipment No</th>
+              <th>Description</th>
+              <th>Plant</th>
+              <th>Status</th>
+              <th>Last Service</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>EQ-12345</strong></td>
+              <td>Industrial Pump Unit</td>
+              <td>PLANT-001</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>2025-11-15</td>
+              <td>
+                <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
+                  aria-label="edit-EQ-12345"
+                  onclick="openEquipment('EQ-12345','Industrial Pump Unit','PLANT-001','Active','2025-11-15','2026-05-15','John Martinez','CC-4521')">
+                  ✏️ Edit
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>EQ-12346</strong></td>
+              <td>Conveyor Belt System</td>
+              <td>PLANT-002</td>
+              <td><span class="badge badge-success">Active</span></td>
+              <td>2025-10-20</td>
+              <td>
+                <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
+                  aria-label="edit-EQ-12346"
+                  onclick="openEquipment('EQ-12346','Conveyor Belt System','PLANT-002','Active','2025-10-20','2026-04-20','Maria Chen','CC-4522')">
+                  ✏️ Edit
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>EQ-12347</strong></td>
+              <td>Pressure Valve Assembly</td>
+              <td>PLANT-001</td>
+              <td><span class="badge badge-danger">Inactive</span></td>
+              <td>2025-08-05</td>
+              <td>
+                <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
+                  aria-label="edit-EQ-12347"
+                  onclick="openEquipment('EQ-12347','Pressure Valve Assembly','PLANT-001','Inactive','2025-08-05','2026-02-05','Robert Kim','CC-4523')">
+                  ✏️ Edit
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 4 – Equipment Detail / Edit
+══════════════════════════════════════════════════════════ -->
+<div id="page-equipment-detail" class="page hidden">
+  <div id="page-identifier" data-page="equipment-detail" class="hidden"></div>
+  <!-- Nav -->
+  <nav class="nav-bar">
+    <div class="nav-brand">
+      <div class="sap-logo-small">SAP</div>
+      <span class="nav-title">Fiori Launchpad</span>
+    </div>
+    <div class="nav-search">
+      <input type="text" aria-label="global-search" placeholder="🔍  Search" />
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" title="Notifications">🔔</button>
+      <button class="nav-icon-btn" title="Help">❓</button>
+      <div style="position:relative">
+        <button class="avatar-btn" aria-label="user-menu-button" onclick="toggleUserMenu()">DU</button>
+        <div id="user-dropdown-detail" class="dropdown-menu hidden">
+          <button onclick="handleSignOut()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <!-- Breadcrumb -->
+  <div class="breadcrumb" aria-label="breadcrumb">
+    <span onclick="showPage('launchpad')">Home</span>
+    &rsaquo;
+    <span onclick="showPage('equipment-list')">Equipment Management</span>
+    &rsaquo;
+    <span id="bc-equipment-id">EQ-12345</span>
+  </div>
+  <div class="content">
+    <div class="page-header-row">
+      <div class="page-title" id="detail-page-title">Equipment: EQ-12345 – Industrial Pump Unit</div>
+      <button
+        class="btn btn-secondary"
+        aria-label="toggle-edit-mode"
+        id="toggle-edit-btn"
+        onclick="toggleEditMode()"
+      >✏️ Edit</button>
+    </div>
+
+    <!-- Main form card -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="two-col">
+        <!-- Left column -->
+        <div>
+          <div class="form-group">
+            <label class="form-label">Equipment Number</label>
+            <input
+              class="form-control"
+              aria-label="field-equipment-number"
+              id="field-equipment-number"
+              readonly
+              value="EQ-12345"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <input
+              class="form-control"
+              aria-label="field-description"
+              id="field-description"
+              readonly
+              value="Industrial Pump Unit"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Plant</label>
+            <select class="form-control" aria-label="field-plant" id="field-plant" disabled>
+              <option value="PLANT-001" selected>PLANT-001</option>
+              <option value="PLANT-002">PLANT-002</option>
+              <option value="PLANT-003">PLANT-003</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" aria-label="field-status" id="field-status" disabled>
+              <option value="Active" selected>Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Under Maintenance">Under Maintenance</option>
+            </select>
+          </div>
+        </div>
+        <!-- Right column -->
+        <div>
+          <div class="form-group">
+            <label class="form-label">Last Service Date</label>
+            <input
+              class="form-control"
+              aria-label="field-last-service"
+              id="field-last-service"
+              type="date"
+              readonly
+              value="2025-11-15"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Next Service Date</label>
+            <input
+              class="form-control"
+              aria-label="field-next-service"
+              id="field-next-service"
+              type="date"
+              readonly
+              value="2026-05-15"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Responsible Person</label>
+            <input
+              class="form-control"
+              aria-label="field-responsible-person"
+              id="field-responsible-person"
+              readonly
+              value="John Martinez"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cost Center</label>
+            <input
+              class="form-control"
+              aria-label="field-cost-center"
+              id="field-cost-center"
+              readonly
+              value="CC-4521"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes card -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">Maintenance Notes</div>
+      <textarea
+        class="form-control"
+        aria-label="field-notes"
+        id="field-notes"
+        placeholder="Enter maintenance notes..."
+        readonly
+        style="height:100px;"
+      >Last inspection: Nov 2025. All systems operational.</textarea>
+    </div>
+
+    <!-- Attachments card -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">Attachments</div>
+      <button
+        class="btn btn-secondary"
+        aria-label="file-upload-button"
+        onclick="document.getElementById('file-input').click()"
+      >📎 Upload File</button>
+      <input
+        type="file"
+        id="file-input"
+        aria-label="file-input"
+        accept=".pdf,.xlsx,.docx"
+        class="hidden"
+        onchange="handleFileUpload(event)"
+        multiple
+      />
+      <div id="uploaded-files-list" aria-label="uploaded-files-list" class="attachments-list"></div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <button class="btn btn-primary" aria-label="save-button" onclick="handleSave()">💾 Save</button>
+      <button class="btn btn-success" aria-label="post-document-button" onclick="showPage('post-confirmation')">📤 Post Document</button>
+      <button class="btn btn-secondary" aria-label="cancel-button" onclick="showPage('equipment-list')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 5 – Post Confirmation (modal overlay)
+══════════════════════════════════════════════════════════ -->
+<div id="page-post-confirmation" class="hidden">
+  <div id="page-identifier" data-page="post-confirmation" class="hidden"></div>
+  <div class="modal-card">
+    <div class="modal-warning-icon">⚠️</div>
+    <div class="modal-title">Confirm Document Posting</div>
+    <div class="modal-subtitle">Please review before posting</div>
+    <table class="summary-table">
+      <tr><td>Equipment No</td><td id="confirm-eq-no">EQ-12345</td></tr>
+      <tr><td>Description</td><td id="confirm-description">Industrial Pump Unit</td></tr>
+      <tr><td>Plant</td><td id="confirm-plant">PLANT-001</td></tr>
+      <tr><td>Status</td><td id="confirm-status">Active</td></tr>
+      <tr><td>Last Service</td><td id="confirm-last-service">2025-11-15</td></tr>
+      <tr><td>Notes</td><td id="confirm-notes"></td></tr>
+      <tr><td>Attachments</td><td id="confirm-attachments">0</td></tr>
+    </table>
+    <div class="warning-text">
+      ⚠️ This action cannot be undone.<br/>
+      Document will be permanently posted to SAP.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger-outline" aria-label="cancel-post-button" onclick="showPage('equipment-detail')">Cancel</button>
+      <button class="btn btn-success" aria-label="confirm-post-button" onclick="confirmPost()">✅ Confirm Post</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 6 – Success
+══════════════════════════════════════════════════════════ -->
+<div id="page-success" class="page hidden">
+  <div id="page-identifier" data-page="success" class="hidden"></div>
+  <div class="success-icon">✅</div>
+  <div class="success-title">Document Successfully Posted</div>
+  <div class="success-card">
+    <div class="success-row">
+      <span>Document Number</span>
+      <span id="success-doc-num">DOC-2026-0000</span>
+    </div>
+    <div class="success-row">
+      <span>Equipment</span>
+      <span id="success-equipment">EQ-12345</span>
+    </div>
+    <div class="success-row">
+      <span>Posted By</span>
+      <span>Demo User</span>
+    </div>
+    <div class="success-row">
+      <span>Posted At</span>
+      <span id="success-timestamp"></span>
+    </div>
+    <div class="success-row">
+      <span>Status</span>
+      <span>Posted ✓</span>
+    </div>
+  </div>
+  <div class="success-buttons">
+    <button class="btn btn-outline btn-lg" aria-label="view-document-button">📄 View Document</button>
+    <button class="btn btn-primary btn-lg" aria-label="return-to-launchpad-button" onclick="showPage('launchpad')">🏠 Return to Launchpad</button>
+  </div>
+</div>
+
+<script>
+  /* ── Page registry ─────────────────────────────────────── */
+  const PAGES = {
+    'login':              'page-login',
+    'launchpad':          'page-launchpad',
+    'equipment-list':     'page-equipment-list',
+    'equipment-detail':   'page-equipment-detail',
+    'post-confirmation':  'page-post-confirmation',
+    'success':            'page-success',
+  };
+
+  let currentPage = 'login';
+  let editMode = false;
+  let uploadedFiles = [];
+
+  /* ── Show / hide pages ─────────────────────────────────── */
+  function showPage(pageKey) {
+    // Hide all
+    Object.values(PAGES).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+
+    // Special handling: post-confirmation sits on top of equipment-detail
+    if (pageKey === 'post-confirmation') {
+      document.getElementById('page-equipment-detail').classList.remove('hidden');
+      // populate confirmation modal
+      populateConfirmation();
+    }
+
+    const target = document.getElementById(PAGES[pageKey]);
+    if (target) target.classList.remove('hidden');
+
+    currentPage = pageKey;
+    closeAllDropdowns();
+    window.scrollTo(0, 0);
+  }
+
+  /* ── PAGE 1: SSO Login ─────────────────────────────────── */
+  function handleSSOLogin() {
+    const btn = document.getElementById('sso-login-btn');
+    btn.innerHTML = '<div class="spinner"></div> Signing in…';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect width="9" height="9" fill="#F25022"/><rect x="11" width="9" height="9" fill="#7FBA00"/><rect y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg> Sign in with Microsoft SSO';
+      btn.disabled = false;
+      showPage('launchpad');
+    }, 1500);
+  }
+
+  /* ── User dropdown ─────────────────────────────────────── */
+  function toggleUserMenu() {
+    const dropdowns = ['user-dropdown','user-dropdown-eq','user-dropdown-detail'];
+    dropdowns.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const visible = !el.classList.contains('hidden');
+        closeAllDropdowns();
+        if (!visible) el.classList.remove('hidden');
+      }
+    });
+  }
+
+  function closeAllDropdowns() {
+    ['user-dropdown','user-dropdown-eq','user-dropdown-detail'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.avatar-btn') && !e.target.closest('.dropdown-menu')) {
+      closeAllDropdowns();
+    }
+  });
+
+  function handleSignOut() {
+    uploadedFiles = [];
+    editMode = false;
+    showPage('login');
+  }
+
+  /* ── PAGE 3: Equipment List ────────────────────────────── */
+  function resetFilters() {
+    document.querySelector('[aria-label="equipment-number-input"]').value = '';
+    document.querySelector('[aria-label="plant-dropdown"]').value = '';
+    document.querySelector('[aria-label="status-dropdown"]').value = '';
+    document.querySelector('[aria-label="date-from-input"]').value = '';
+    document.querySelector('[aria-label="date-to-input"]').value = '';
+  }
+
+  /* ── PAGE 4: Equipment Detail ──────────────────────────── */
+  function openEquipment(id, desc, plant, status, lastService, nextService, responsible, costCenter) {
+    // Populate fields
+    document.getElementById('field-equipment-number').value = id;
+    document.getElementById('field-description').value = desc;
+    document.getElementById('bc-equipment-id').textContent = id;
+    document.getElementById('detail-page-title').textContent = `Equipment: ${id} – ${desc}`;
+
+    // Plant dropdown
+    const plantSel = document.getElementById('field-plant');
+    for (let i = 0; i < plantSel.options.length; i++) {
+      if (plantSel.options[i].value === plant) { plantSel.selectedIndex = i; break; }
+    }
+
+    // Status dropdown
+    const statusSel = document.getElementById('field-status');
+    for (let i = 0; i < statusSel.options.length; i++) {
+      if (statusSel.options[i].value === status) { statusSel.selectedIndex = i; break; }
+    }
+
+    document.getElementById('field-last-service').value = lastService;
+    document.getElementById('field-next-service').value = nextService;
+    document.getElementById('field-responsible-person').value = responsible;
+    document.getElementById('field-cost-center').value = costCenter;
+    document.getElementById('field-notes').value = 'Last inspection: Nov 2025. All systems operational.';
+
+    // Reset edit mode & attachments
+    editMode = false;
+    uploadedFiles = [];
+    document.getElementById('uploaded-files-list').innerHTML = '';
+    applyEditMode();
+
+    showPage('equipment-detail');
+  }
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    applyEditMode();
+  }
+
+  function applyEditMode() {
+    const btn = document.getElementById('toggle-edit-btn');
+    const fields = ['field-description','field-last-service','field-next-service',
+                    'field-responsible-person','field-cost-center','field-notes'];
+    const selects = ['field-plant','field-status'];
+
+    if (editMode) {
+      btn.textContent = '👁 View';
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.removeAttribute('readonly');
+      });
+      selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.removeAttribute('disabled');
+      });
+    } else {
+      btn.textContent = '✏️ Edit';
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('readonly', '');
+      });
+      selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('disabled', '');
+      });
+    }
+  }
+
+  function handleSave() {
+    showToast('Changes saved successfully');
+  }
+
+  /* ── File uploads ──────────────────────────────────────── */
+  function handleFileUpload(event) {
+    const files = Array.from(event.target.files);
+    files.forEach(file => {
+      uploadedFiles.push(file.name);
+      renderFileList();
+    });
+    event.target.value = ''; // reset so same file can be re-added
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('uploaded-files-list');
+    list.innerHTML = '';
+    uploadedFiles.forEach((name, idx) => {
+      const item = document.createElement('div');
+      item.className = 'attachment-item';
+      item.innerHTML = `
+        <span>📎 ${name}</span>
+        <button class="attachment-remove" title="Remove" onclick="removeFile(${idx})">✕</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  function removeFile(idx) {
+    uploadedFiles.splice(idx, 1);
+    renderFileList();
+  }
+
+  /* ── PAGE 5: Confirmation ──────────────────────────────── */
+  function populateConfirmation() {
+    const eq  = document.getElementById('field-equipment-number').value;
+    const desc = document.getElementById('field-description').value;
+    const plant = document.getElementById('field-plant').value;
+    const status = document.getElementById('field-status').value;
+    const lastSvc = document.getElementById('field-last-service').value;
+    const notes = document.getElementById('field-notes').value;
+
+    document.getElementById('confirm-eq-no').textContent = eq;
+    document.getElementById('confirm-description').textContent = desc;
+    document.getElementById('confirm-plant').textContent = plant;
+    document.getElementById('confirm-status').textContent = status;
+    document.getElementById('confirm-last-service').textContent = lastSvc;
+    document.getElementById('confirm-notes').textContent = notes.slice(0, 50) + (notes.length > 50 ? '…' : '');
+    document.getElementById('confirm-attachments').textContent = uploadedFiles.length;
+  }
+
+  /* ── PAGE 6: Success ───────────────────────────────────── */
+  function confirmPost() {
+    const rand = String(Math.floor(Math.random() * 9000) + 1000);
+    document.getElementById('success-doc-num').textContent = `DOC-2026-${rand}`;
+    document.getElementById('success-equipment').textContent =
+      document.getElementById('field-equipment-number').value;
+    document.getElementById('success-timestamp').textContent =
+      new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium' });
+    showPage('success');
+  }
+
+  /* ── Toast helper ──────────────────────────────────────── */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  /* ── Boot ──────────────────────────────────────────────── */
+  showPage('login');
+</script>
+</body>
+</html>
