@@ -49,6 +49,19 @@ def init_db():
             )
         """)
 
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                action         TEXT NOT NULL,
+                equipment_id   TEXT NOT NULL,
+                changed_fields TEXT,
+                old_values     TEXT,
+                new_values     TEXT,
+                performed_by   TEXT,
+                performed_at   TEXT NOT NULL
+            )
+        """)
+
         # Seed only if empty
         count = conn.execute("SELECT COUNT(*) FROM equipment").fetchone()[0]
         if count == 0:
@@ -125,8 +138,14 @@ def update_equipment(eq_id: str, updates: dict) -> dict | None:
         "next_service_date", "responsible_person", "cost_center", "notes"
     }
     filtered = {k: v for k, v in updates.items() if k in allowed}
+
+    # Fetch existing record BEFORE updating so old values can be captured
+    old_record = get_equipment_by_id(eq_id)
+    if old_record is None:
+        return None
+
     if not filtered:
-        return get_equipment_by_id(eq_id)
+        return old_record
 
     filtered["updated_at"] = datetime.utcnow().isoformat()
     set_clause = ", ".join(f"{k} = ?" for k in filtered)
@@ -164,6 +183,41 @@ def post_document(equipment_id: str, posted_by: str = "Demo User") -> dict:
         "equipment_id": equipment_id,
         "posted_by": posted_by,
         "posted_at": now,
+    }
+
+
+def log_audit_entry(
+    action: str,
+    equipment_id: str,
+    changed_fields: list,
+    old_values: dict,
+    new_values: dict,
+    performed_by: str = "SAP Agent",
+) -> dict:
+    """Write an audit record to audit_log. Returns the created record metadata."""
+    import json as _json
+    now = datetime.utcnow().isoformat()
+    with get_connection() as conn:
+        cursor = conn.execute("""
+            INSERT INTO audit_log
+              (action, equipment_id, changed_fields, old_values, new_values, performed_by, performed_at)
+            VALUES (?,?,?,?,?,?,?)
+        """, (
+            action,
+            equipment_id,
+            _json.dumps(changed_fields),
+            _json.dumps(old_values),
+            _json.dumps(new_values),
+            performed_by,
+            now,
+        ))
+        conn.commit()
+    return {
+        "id": cursor.lastrowid,
+        "action": action,
+        "equipment_id": equipment_id,
+        "performed_by": performed_by,
+        "performed_at": now,
     }
 
 

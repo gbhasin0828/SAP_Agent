@@ -474,6 +474,52 @@
       margin-top: 5px;
       letter-spacing: 0.02em;
     }
+
+    /* ── MODE TOGGLE ──────────────────────────────────────────── */
+    .mode-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .mode-btn {
+      padding: 5px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .mode-btn:hover {
+      color: var(--text-secondary);
+      border-color: var(--text-muted);
+    }
+
+    .mode-btn.active-browser {
+      background: rgba(204, 0, 0, 0.15);
+      border-color: rgba(204, 0, 0, 0.5);
+      color: var(--lilly-red);
+    }
+
+    .mode-btn.active-api {
+      background: rgba(0, 112, 242, 0.15);
+      border-color: rgba(0, 112, 242, 0.5);
+      color: var(--sap-blue);
+    }
+
+    /* ── API MODE LAYOUT ──────────────────────────────────────── */
+    .split-panels.api-mode .panel-right {
+      display: none;
+    }
+
+    .split-panels.api-mode .panel-left {
+      width: 100%;
+      border-right: none;
+    }
   </style>
 </head>
 <body>
@@ -497,11 +543,11 @@
   <div class="page-body">
 
     <!-- SPLIT PANELS -->
-    <div class="split-panels">
+    <div class="split-panels" id="splitPanels">
 
       <!-- LEFT: Agent Activity -->
       <div class="panel-left">
-        <div class="panel-header">Agent Activity</div>
+        <div class="panel-header" id="leftPanelHeader">Agent Activity</div>
         <div class="chat-messages" id="chatMessages"></div>
       </div>
 
@@ -528,6 +574,10 @@
 
     <!-- INPUT BAR -->
     <div class="input-bar">
+      <div class="mode-toggle">
+        <button class="mode-btn active-browser" id="btnBrowser" onclick="setMode('browser')">🖥️ Browser Mode</button>
+        <button class="mode-btn" id="btnApi" onclick="setMode('api')">⚡ API Mode</button>
+      </div>
       <div class="input-row">
         <input
           type="text"
@@ -555,6 +605,32 @@
     const statusStep    = document.getElementById('statusStep');
     const statusAction  = document.getElementById('statusAction');
     const statusTime    = document.getElementById('statusTime');
+    const splitPanels   = document.getElementById('splitPanels');
+    const leftPanelHeader = document.getElementById('leftPanelHeader');
+    const btnBrowser    = document.getElementById('btnBrowser');
+    const btnApi        = document.getElementById('btnApi');
+
+    let currentMode = 'browser';
+
+    const BROWSER_PLACEHOLDER = 'Tell the Lilly SAP agent what to do... e.g. Login to SAP and find equipment EQ-12345';
+    const API_PLACEHOLDER     = 'Ask the SAP database anything... e.g. Show me all equipment under maintenance';
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'api') {
+        btnApi.className     = 'mode-btn active-api';
+        btnBrowser.className = 'mode-btn';
+        splitPanels.classList.add('api-mode');
+        userInput.placeholder = API_PLACEHOLDER;
+        leftPanelHeader.textContent = '⚡ API Query Mode — Database Direct';
+      } else {
+        btnBrowser.className = 'mode-btn active-browser';
+        btnApi.className     = 'mode-btn';
+        splitPanels.classList.remove('api-mode');
+        userInput.placeholder = BROWSER_PLACEHOLDER;
+        leftPanelHeader.textContent = 'Agent Activity';
+      }
+    }
 
     // Enter key to send
     userInput.addEventListener('keydown', e => {
@@ -763,6 +839,65 @@
           break;
         }
 
+        case 'sap_update_approval': {
+          setInputEnabled(false);
+          const equipmentId = evt.equipment_id || '';
+          const updates = evt.updates || {};
+          const fields = evt.changed_fields || Object.keys(updates);
+
+          const tableRows = fields.map(f =>
+            `<tr>
+              <td style="padding:3px 12px 3px 0;color:#f0c040;font-size:12px;">${escapeHtml(f)}</td>
+              <td style="padding:3px 0;color:var(--text-secondary);font-size:12px;">${escapeHtml(String(updates[f] ?? ''))}</td>
+            </tr>`
+          ).join('');
+
+          const d = document.createElement('div');
+          d.className = 'msg msg-approval';
+          d.innerHTML = `
+            <div class="approval-title">✏️ SAP DB Update Approval</div>
+            <div class="approval-summary">
+              Equipment: <strong style="color:#fff;">${escapeHtml(equipmentId)}</strong>
+              <table style="margin-top:8px;border-collapse:collapse;width:100%;">
+                <thead><tr>
+                  <th style="text-align:left;padding:2px 12px 4px 0;font-size:11px;color:var(--text-muted);font-weight:600;">Field</th>
+                  <th style="text-align:left;padding:2px 0 4px 0;font-size:11px;color:var(--text-muted);font-weight:600;">New Value</th>
+                </tr></thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            </div>
+            <div class="approval-warning">⚠️ This will modify the equipment database record</div>
+            <div class="approval-actions">
+              <button class="btn-approve" id="updateApproveBtn">✅ Approve Update</button>
+              <button class="btn-cancel" id="updateCancelBtn">❌ Cancel</button>
+            </div>`;
+          addMessage(d);
+
+          d.querySelector('#updateApproveBtn').addEventListener('click', async () => {
+            d.querySelector('.approval-actions').innerHTML = '<span style="color:#f0c040;font-size:12px;">Processing...</span>';
+            try {
+              await streamRequest('http://localhost:8000/approve-sap-update', {
+                equipment_id: equipmentId,
+                updates: updates,
+              });
+            } catch (err) {
+              msgError('Update failed: ' + err.message);
+            }
+            setInputEnabled(true);
+          });
+
+          d.querySelector('#updateCancelBtn').addEventListener('click', () => {
+            d.querySelector('.approval-actions').innerHTML = '<span style="color:#f06060;font-size:12px;">Update cancelled</span>';
+            const cd = document.createElement('div');
+            cd.className = 'msg msg-thinking';
+            cd.textContent = 'Update cancelled by user.';
+            addMessage(cd);
+            updateStatus('Update cancelled', false);
+            setInputEnabled(true);
+          });
+          break;
+        }
+
         default:
           // If it has a content or message field, show as thinking
           if (evt.content || evt.message) {
@@ -834,8 +969,12 @@
       setInputEnabled(false);
       updateStatus('Agent is running...', null);
 
+      const endpoint = currentMode === 'api'
+        ? 'http://localhost:8000/api/query'
+        : 'http://localhost:8000/sap-chat';
+
       try {
-        await streamRequest('http://localhost:8000/sap-chat', { message: text });
+        await streamRequest(endpoint, { message: text });
       } catch (err) {
         msgError('Connection error: ' + err.message);
         updateStatus('Connection failed', false);
