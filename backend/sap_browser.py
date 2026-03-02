@@ -357,8 +357,13 @@ class SAPBrowser:
 
     async def launch_browser(self, url: str = SAP_URL) -> dict:
         try:
-            self.playwright = await async_playwright().start()
-            self.browser = await self.playwright.chromium.launch(headless=False)
+            if self.playwright is None:
+                self.playwright = await async_playwright().start()
+            if self.browser is None or not self.browser.is_connected():
+                self.browser = await self.playwright.chromium.launch(
+                    headless=False,
+                    args=["--no-sandbox", "--disable-dev-shm-usage"]
+                )
             self.page = await self.browser.new_page(viewport={"width": 1280, "height": 800})
             await self.page.goto(url)
             await self.page.wait_for_load_state("load")
@@ -369,6 +374,9 @@ class SAPBrowser:
                 "screenshot": screenshot,
             }
         except Exception as e:
+            self.playwright = None
+            self.browser = None
+            self.page = None
             return {
                 "success": False,
                 "message": str(e),

@@ -680,7 +680,7 @@
         </div>
         <div class="filter-bar-actions">
           <button class="btn btn-secondary" aria-label="reset-button" onclick="resetFilters()">Reset</button>
-          <button class="btn btn-primary" aria-label="search-button">🔍 Search</button>
+          <button class="btn btn-primary" aria-label="search-button" onclick="searchEquipment()">🔍 Search</button>
         </div>
       </div>
     </div>
@@ -698,47 +698,10 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td><strong>EQ-12345</strong></td>
-              <td>Industrial Pump Unit</td>
-              <td>PLANT-001</td>
-              <td><span class="badge badge-success">Active</span></td>
-              <td>2025-11-15</td>
-              <td>
-                <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
-                  aria-label="edit-EQ-12345"
-                  onclick="openEquipment('EQ-12345','Industrial Pump Unit','PLANT-001','Active','2025-11-15','2026-05-15','John Martinez','CC-4521')">
-                  ✏️ Edit
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td><strong>EQ-12346</strong></td>
-              <td>Conveyor Belt System</td>
-              <td>PLANT-002</td>
-              <td><span class="badge badge-success">Active</span></td>
-              <td>2025-10-20</td>
-              <td>
-                <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
-                  aria-label="edit-EQ-12346"
-                  onclick="openEquipment('EQ-12346','Conveyor Belt System','PLANT-002','Active','2025-10-20','2026-04-20','Maria Chen','CC-4522')">
-                  ✏️ Edit
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td><strong>EQ-12347</strong></td>
-              <td>Pressure Valve Assembly</td>
-              <td>PLANT-001</td>
-              <td><span class="badge badge-danger">Inactive</span></td>
-              <td>2025-08-05</td>
-              <td>
-                <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
-                  aria-label="edit-EQ-12347"
-                  onclick="openEquipment('EQ-12347','Pressure Valve Assembly','PLANT-001','Inactive','2025-08-05','2026-02-05','Robert Kim','CC-4523')">
-                  ✏️ Edit
-                </button>
+          <tbody id="eq-table-body">
+            <tr id="eq-table-loading">
+              <td colspan="6" style="text-align:center;padding:24px;color:#666;">
+                Loading equipment…
               </td>
             </tr>
           </tbody>
@@ -1003,6 +966,8 @@
   let editMode = false;
   let uploadedFiles = [];
 
+  const API_BASE = 'http://localhost:8000';
+
   /* ── Show / hide pages ─────────────────────────────────── */
   function showPage(pageKey) {
     // Hide all
@@ -1024,6 +989,11 @@
     currentPage = pageKey;
     closeAllDropdowns();
     window.scrollTo(0, 0);
+
+    // Fetch equipment list whenever we navigate to it
+    if (pageKey === 'equipment-list') {
+      fetchEquipment();
+    }
   }
 
   /* ── PAGE 1: SSO Login ─────────────────────────────────── */
@@ -1071,47 +1041,120 @@
   }
 
   /* ── PAGE 3: Equipment List ────────────────────────────── */
+
+  function statusBadgeClass(status) {
+    const s = (status || '').toLowerCase();
+    if (s === 'active') return 'badge-success';
+    if (s === 'inactive') return 'badge-danger';
+    return 'badge-warning';
+  }
+
+  function renderEquipmentRows(rows) {
+    const tbody = document.getElementById('eq-table-body');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#666;">No equipment found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(eq => `
+      <tr>
+        <td><strong>${eq.id}</strong></td>
+        <td>${eq.description}</td>
+        <td>${eq.plant}</td>
+        <td><span class="badge ${statusBadgeClass(eq.status)}">${eq.status}</span></td>
+        <td>${eq.last_service_date || '—'}</td>
+        <td>
+          <button class="btn btn-secondary" style="height:30px;padding:0 12px;font-size:13px;"
+            aria-label="edit-${eq.id}"
+            onclick="openEquipment('${eq.id}')">
+            ✏️ Edit
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function fetchEquipment(plant, status, eq_id) {
+    const tbody = document.getElementById('eq-table-body');
+    tbody.innerHTML = '<tr id="eq-table-loading"><td colspan="6" style="text-align:center;padding:24px;color:#666;">Loading equipment…</td></tr>';
+
+    const params = new URLSearchParams();
+    if (plant)  params.set('plant',  plant);
+    if (status) params.set('status', status);
+    if (eq_id)  params.set('eq_id',  eq_id);
+
+    try {
+      const res = await fetch(`${API_BASE}/db/equipment?${params}`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      renderEquipmentRows(data);
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:#BB0000;">Failed to load equipment: ${err.message}</td></tr>`;
+    }
+  }
+
+  function searchEquipment() {
+    const eq_id  = document.querySelector('[aria-label="equipment-number-input"]').value.trim();
+    const plant  = document.querySelector('[aria-label="plant-dropdown"]').value;
+    const status = document.querySelector('[aria-label="status-dropdown"]').value;
+    fetchEquipment(plant || null, status || null, eq_id || null);
+  }
+
   function resetFilters() {
     document.querySelector('[aria-label="equipment-number-input"]').value = '';
     document.querySelector('[aria-label="plant-dropdown"]').value = '';
     document.querySelector('[aria-label="status-dropdown"]').value = '';
     document.querySelector('[aria-label="date-from-input"]').value = '';
     document.querySelector('[aria-label="date-to-input"]').value = '';
+    fetchEquipment();
   }
 
   /* ── PAGE 4: Equipment Detail ──────────────────────────── */
-  function openEquipment(id, desc, plant, status, lastService, nextService, responsible, costCenter) {
-    // Populate fields
-    document.getElementById('field-equipment-number').value = id;
-    document.getElementById('field-description').value = desc;
+  async function openEquipment(id) {
+    // Navigate first so the user sees the page immediately
+    showPage('equipment-detail');
+
+    // Show loading state in the form
+    document.getElementById('detail-page-title').textContent = `Loading ${id}…`;
     document.getElementById('bc-equipment-id').textContent = id;
-    document.getElementById('detail-page-title').textContent = `Equipment: ${id} – ${desc}`;
+    document.getElementById('field-equipment-number').value = id;
 
-    // Plant dropdown
-    const plantSel = document.getElementById('field-plant');
-    for (let i = 0; i < plantSel.options.length; i++) {
-      if (plantSel.options[i].value === plant) { plantSel.selectedIndex = i; break; }
+    try {
+      const res = await fetch(`${API_BASE}/db/equipment/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const eq = await res.json();
+
+      document.getElementById('field-equipment-number').value = eq.id;
+      document.getElementById('field-description').value = eq.description;
+      document.getElementById('bc-equipment-id').textContent = eq.id;
+      document.getElementById('detail-page-title').textContent = `Equipment: ${eq.id} – ${eq.description}`;
+
+      // Plant dropdown
+      const plantSel = document.getElementById('field-plant');
+      for (let i = 0; i < plantSel.options.length; i++) {
+        if (plantSel.options[i].value === eq.plant) { plantSel.selectedIndex = i; break; }
+      }
+
+      // Status dropdown
+      const statusSel = document.getElementById('field-status');
+      for (let i = 0; i < statusSel.options.length; i++) {
+        if (statusSel.options[i].value === eq.status) { statusSel.selectedIndex = i; break; }
+      }
+
+      document.getElementById('field-last-service').value = eq.last_service_date || '';
+      document.getElementById('field-next-service').value = eq.next_service_date || '';
+      document.getElementById('field-responsible-person').value = eq.responsible_person || '';
+      document.getElementById('field-cost-center').value = eq.cost_center || '';
+      document.getElementById('field-notes').value = eq.notes || '';
+    } catch (err) {
+      document.getElementById('detail-page-title').textContent = `Error loading ${id}`;
+      showToast(`Failed to load equipment: ${err.message}`);
     }
-
-    // Status dropdown
-    const statusSel = document.getElementById('field-status');
-    for (let i = 0; i < statusSel.options.length; i++) {
-      if (statusSel.options[i].value === status) { statusSel.selectedIndex = i; break; }
-    }
-
-    document.getElementById('field-last-service').value = lastService;
-    document.getElementById('field-next-service').value = nextService;
-    document.getElementById('field-responsible-person').value = responsible;
-    document.getElementById('field-cost-center').value = costCenter;
-    document.getElementById('field-notes').value = 'Last inspection: Nov 2025. All systems operational.';
 
     // Reset edit mode & attachments
     editMode = false;
     uploadedFiles = [];
     document.getElementById('uploaded-files-list').innerHTML = '';
     applyEditMode();
-
-    showPage('equipment-detail');
   }
 
   function toggleEditMode() {

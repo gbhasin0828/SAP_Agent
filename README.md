@@ -22,6 +22,33 @@ All document posting actions require explicit human approval before execution, i
 - Professional Generic branded UI
 - Foundation for production SAP API integration via MCP
 
+################################################################################################################
+What you can demonstrate:
+
+Demo 1 — Data Discovery:
+"Login to SAP and show me all equipment"
+→ Agent reads and summarizes entire table
+
+Demo 2 — Intelligent Analysis:
+"Find EQ-12347 and tell me why it is inactive"
+→ Agent finds inconsistencies humans might miss
+
+Demo 3 — Data Entry (try this next):
+"Update the maintenance notes for EQ-12347
+ to say: Status reviewed February 2026.
+ Equipment cleared for reactivation."
+→ Agent fills the field and saves
+
+Demo 4 — HITL Posting (the safety demo):
+"Update EQ-12347 status to Active
+ and post the document"
+→ Agent prepares everything
+→ STOPS for human approval
+→ You approve
+→ Document posted
+
+###########################################################################################################################
+
 ---
 
 ## Architecture
@@ -100,8 +127,12 @@ You need **two terminal windows** running simultaneously.
 
 ```bash
 cd /path/to/sap-agent
-source backend/venv/bin/activate
+source backend/venv/bin/activate  # Mac
+venv\Scripts\activate         # Windows
 python -m http.server 8001 --directory frontend
+or 
+python -m http.server 8001    # if running inside frontend
+
 ```
 
 Expected output:
@@ -114,6 +145,7 @@ Serving HTTP on :: port 8001 (http://[::]:8001/) ...
 ```bash
 cd /path/to/sap-agent/backend
 source venv/bin/activate
+venv\Scripts\activate         # Windows
 uvicorn sap_main:app --reload --port 8000
 ```
 

@@ -1,4 +1,18 @@
-from fastapi import FastAPI
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Make sure this is called BEFORE creating the client
+print("API KEY LOADED:", os.getenv("ANTHROPIC_API_KEY"))
+
+
+import asyncio
+import sys
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -6,8 +20,16 @@ from anthropic import Anthropic
 import asyncio
 import json
 import os
+import re
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 from sap_browser import sap_browser
+from sap_db_tools import DB_TOOLS, execute_db_tool, DB_SYSTEM_PROMPT_ADDON
+from sap_database import (
+    get_all_equipment, get_equipment_by_id,
+    update_equipment, get_posted_documents,
+    post_document,
+)
 
 load_dotenv()
 
@@ -28,6 +50,16 @@ client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 class ChatRequest(BaseModel):
     message: str
+
+
+class ApproveRequest(BaseModel):
+    equipment_id: Optional[str] = None
+
+
+def _extract_eq_id(text: str) -> Optional[str]:
+    """Return the first EQ-##### token found in text, or None."""
+    m = re.search(r'\bEQ-\d+\b', text or "")
+    return m.group(0) if m else None
 
 
 # ── Tool definitions ───────────────────────────────────────────────────────────
@@ -190,7 +222,7 @@ async def execute_tool(tool_name: str, tool_input: dict) -> dict:
     elif tool_name == "get_page_state":
         return await sap_browser.get_page_state()
     else:
-        return {"success": False, "message": f"Unknown tool: {tool_name}", "screenshot": ""}
+        return await execute_db_tool(tool_name, tool_input)
 
 # ── SSE helper ─────────────────────────────────────────────────────────────────
 
@@ -212,8 +244,8 @@ async def sap_chat(request: ChatRequest):
             response = client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=4096,
-                system=SYSTEM_PROMPT,
-                tools=SAP_TOOLS,
+                system=SYSTEM_PROMPT + "\n\n" + DB_SYSTEM_PROMPT_ADDON,
+                tools=SAP_TOOLS + DB_TOOLS,
                 messages=messages,
             )
 
@@ -279,11 +311,20 @@ async def sap_chat(request: ChatRequest):
                     if block.name == "click_element" and "post" in block.input.get(
                         "element_description", ""
                     ).lower():
+                        # Try to surface the equipment ID so the frontend can pass it back
+                        data = result.get("data", {})
+                        eq_id_hint = (
+                            _extract_eq_id(data.get("vision_after", ""))
+                            or _extract_eq_id(data.get("state", ""))
+                            or _extract_eq_id(data.get("extracted", ""))
+                            or _extract_eq_id(result.get("message", ""))
+                        )
                         yield format_sse(
                             {
                                 "type": "sap_approval",
                                 "content": "Document ready to post",
-                                "summary": result.get("data", {}),
+                                "summary": data,
+                                "equipment_id": eq_id_hint,
                             }
                         )
                         await asyncio.sleep(0)
@@ -334,8 +375,10 @@ async def sap_chat(request: ChatRequest):
 # ── /approve-sap-post endpoint ─────────────────────────────────────────────────
 
 @app.post("/approve-sap-post")
-async def approve_sap_post():
+async def approve_sap_post(request: ApproveRequest = Body(default=ApproveRequest())):
     async def generate():
+        equipment_id = request.equipment_id
+
         yield format_sse({"type": "thinking", "content": "Processing approval..."})
         await asyncio.sleep(0)
 
@@ -353,17 +396,39 @@ async def approve_sap_post():
             await asyncio.sleep(0)
 
         read_result = await sap_browser.read_screen_data(
-            "document number and posting confirmation details"
+            "equipment ID, document number and posting confirmation details"
         )
+
+        # Fallback: try to extract equipment_id from the screen if not passed by the caller
+        if not equipment_id:
+            data = read_result.get("data", {})
+            equipment_id = (
+                _extract_eq_id(data.get("extracted", ""))
+                or _extract_eq_id(data.get("state", ""))
+                or _extract_eq_id(read_result.get("message", ""))
+            )
+            if not equipment_id:
+                print("[APPROVE] Warning: could not extract equipment ID from screen data — skipping DB record")
+
+        # Persist the posted document in the database
+        doc_number = None
+        if equipment_id:
+            try:
+                db_doc = post_document(equipment_id, posted_by="SAP Agent")
+                doc_number = db_doc.get("doc_number")
+                print(f"[APPROVE] DB record created: {doc_number} for {equipment_id}")
+            except Exception as exc:
+                print(f"[APPROVE] Warning: failed to create DB record: {exc}")
 
         confirmation = read_result.get("data", {}).get("extracted") or read_result.get(
             "message", "Document posted."
         )
+        db_note = f"\n\n**DB Document Number:** {doc_number}" if doc_number else ""
 
         yield format_sse(
             {
                 "type": "final",
-                "content": f"Document posted successfully.\n\n{confirmation}",
+                "content": f"Document posted successfully.\n\n{confirmation}{db_note}",
             }
         )
         await asyncio.sleep(0)
@@ -378,13 +443,61 @@ async def approve_sap_post():
             )
             await asyncio.sleep(0)
 
+        # Let the frontend know the DB doc number so it can display it
+        if doc_number:
+            yield format_sse(
+                {
+                    "type": "doc_posted",
+                    "doc_number": doc_number,
+                    "equipment_id": equipment_id,
+                }
+            )
+            await asyncio.sleep(0)
+
         yield format_sse({"type": "done"})
         await asyncio.sleep(0)
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+# ── /db endpoints ──────────────────────────────────────────────────────────────
+
+@app.get("/db/equipment")
+async def db_list_equipment(
+    plant: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    eq_id: Optional[str] = Query(None),
+):
+    return get_all_equipment(plant=plant, status=status, eq_id=eq_id)
+
+
+@app.get("/db/equipment/{eq_id}")
+async def db_get_equipment(eq_id: str):
+    record = get_equipment_by_id(eq_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Equipment not found")
+    return record
+
+
+@app.post("/db/equipment/{eq_id}")
+async def db_update_equipment(eq_id: str, updates: Dict[str, Any] = Body(...)):
+    record = update_equipment(eq_id, updates)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Equipment not found")
+    return record
+
+
+@app.get("/db/documents")
+async def db_list_documents(equipment_id: Optional[str] = Query(None)):
+    return get_posted_documents(equipment_id=equipment_id)
+
 
 # ── /health endpoint ───────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "SAP Agent"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("sap_main:app", host="127.0.0.1", port=8000)
