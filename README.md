@@ -53,17 +53,83 @@ Demo 4 — HITL Posting (the safety demo):
 
 ## Architecture
 
+###########################################################################################################################
+
+## Browser Mode — Request hits backend
+
+routers/chat.py → sap_chat()
+    ↓
+agents/browser_agent.py → run_browser_agent()
+    ↓
+prompts/browser_prompt.py → SYSTEM_PROMPT + DB_SYSTEM_PROMPT_ADDON
+    ↓
+tools/browser_tools.py → BROWSER_TOOLS
+tools/db_tools.py → DB_TOOLS
+    ↓
+_client.messages.create() → Claude decides tool
+    ↓
+agents/browser_agent.py → _execute_tool()
+    ↓
+    IF browser tool:
+        tools/browser_tools.py → execute_browser_tool()
+            ↓
+            sap_browser.py → SAPBrowser class
+                ↓
+                Playwright → fake_sap.html
+                Claude Vision API → screenshot analysis
+    ↓
+    IF db tool:
+        tools/db_tools.py → execute_db_tool()
+            ↓
+            database/audit.py → execute_natural_query() or execute_write_query()
+                ↓
+                database/connection.py → get_connection()
+                    ↓
+                    sap_equipment.db
+    ↓
+SSE events streamed back to sap_agent.html
 ```
-User Chat UI (sap_agent.html)
+
+
+###########################################################################################################################
+
+
+##  API Mode — Request hits backend
+routers/api_routes.py → api_query()
+    ↓
+agents/api_agent.py → stream_api_query()
+    ↓
+prompts/api_prompt.py → build_api_prompt()
+    ↓
+    database/audit.py → get_schema_info()
         ↓
-FastAPI Backend (sap_main.py)
-        ↓
-Claude Agent Brain (claude-sonnet-4-6)
-        ↓
-Browser Tools (sap_browser.py)
-        ↓
-Playwright → Chrome Browser → SAP Fiori UI
-```
+        database/connection.py → get_connection()
+            ↓
+            sap_equipment.db → reads all table schemas
+    ↓
+tools/db_tools.py → DB_TOOLS
+    ↓
+_client.messages.create() → Claude decides tool
+    ↓
+agents/api_agent.py → execute_db_tool()
+    ↓
+    IF execute_sql_query:
+        database/audit.py → execute_natural_query()
+            ↓
+            database/connection.py → get_connection()
+                ↓
+                sap_equipment.db
+    ↓
+    IF execute_db_write:
+        database/audit.py → execute_write_query()
+            ↓
+            database/crud.py → get_record_by_id() + update_record()
+                ↓
+                database/connection.py → get_connection()
+                    ↓
+                    sap_equipment.db
+    ↓
+SSE events streamed back to sap_agent.html
 
 ### Key Components
 

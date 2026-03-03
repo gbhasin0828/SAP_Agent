@@ -15,9 +15,8 @@ from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from database.crud import get_record_by_id, insert_record, update_record
-from database.audit import log_audit_entry
-from routers.db_routes import EQUIPMENT_ALLOWED_FIELDS
+from database.crud import get_record_by_id, insert_record
+from database.audit import log_audit_entry, execute_write_query
 from sap_browser import sap_browser
 
 router = APIRouter()
@@ -162,9 +161,15 @@ async def approve_sap_update(request: UpdateApproveRequest):
             await asyncio.sleep(0)
             return
 
-        new_record = update_record("equipment", equipment_id, updates, EQUIPMENT_ALLOWED_FIELDS)
+        new_record = execute_write_query("equipment", equipment_id, updates)
+        if isinstance(new_record, dict) and "error" in new_record:
+            yield _sse({"type": "error", "content": new_record["error"]})
+            yield _sse({"type": "done"})
+            await asyncio.sleep(0)
+            return
 
-        changed_fields = [k for k in updates if k in EQUIPMENT_ALLOWED_FIELDS]
+        _SYSTEM_FIELDS = {"id", "created_at", "updated_at", "rowid"}
+        changed_fields = [k for k in updates if k in old_record and k not in _SYSTEM_FIELDS]
         old_values = {k: old_record.get(k) for k in changed_fields}
         new_values = {k: new_record.get(k) for k in changed_fields}
 

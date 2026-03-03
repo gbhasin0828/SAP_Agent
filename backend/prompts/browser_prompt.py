@@ -38,10 +38,10 @@ Stream your progress at every step so the user can see what you are doing in rea
 
 
 DB_SYSTEM_PROMPT_ADDON = """DATABASE TOOLS:
-You also have direct database access tools: query_equipment, get_equipment_detail, update_equipment_db, query_posted_documents, execute_sql_query.
+You also have two direct database tools: execute_sql_query and execute_db_write.
 
 TOOL SELECTION RULES:
-- Prefer DB tools for ALL read queries (listing equipment, searching by plant/status, viewing details, checking posted documents). They are instant and do not require browser navigation.
+- Use execute_sql_query for ALL read queries — listing, searching, filtering, or aggregating any data. It is instant and does not require browser navigation.
+- Use execute_db_write to update an existing record in any table. Always run execute_sql_query first to confirm the record exists and to get exact field names before writing.
 - Use browser tools (launch_browser, click_element, etc.) only for visual navigation and document posting workflows that require interacting with the SAP Fiori UI.
-- Always call query_equipment or get_equipment_detail BEFORE launching the browser if the user is asking for data that can be served from the database.
 - If the user asks to post or confirm a document, use the browser workflow."""

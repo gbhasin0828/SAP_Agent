@@ -23,64 +23,6 @@ _client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 def _sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
-
-# ── Blocking helper ────────────────────────────────────────────────────────────
-
-async def execute_api_query(message: str) -> str:
-    """
-    Run an agentic DB-only loop and return the final text response.
-    No SSE, no screenshots.
-    """
-    system_prompt = build_api_prompt()
-    messages = [{"role": "user", "content": message}]
-
-    for _ in range(10):
-        response = _client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            system=system_prompt,
-            tools=DB_TOOLS,
-            messages=messages,
-        )
-
-        assistant_content = []
-        tool_results = []
-
-        for block in response.content:
-            assistant_content.append(block)
-
-            if block.type == "tool_use":
-                try:
-                    result = await execute_db_tool(block.name, block.input)
-                except Exception as exc:
-                    result = {"success": False, "message": str(exc), "data": {}, "screenshot": ""}
-
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": json.dumps({
-                        "success": result.get("success"),
-                        "message": result.get("message", ""),
-                        "data": result.get("data", {}),
-                    }),
-                })
-
-        messages.append({"role": "assistant", "content": assistant_content})
-
-        if tool_results:
-            messages.append({"role": "user", "content": tool_results})
-
-        if response.stop_reason == "end_turn":
-            return " ".join(
-                b.text for b in response.content if b.type == "text" and b.text.strip()
-            )
-
-        if response.stop_reason != "tool_use":
-            break
-
-    return "No response generated."
-
-
 # ── Streaming generator ────────────────────────────────────────────────────────
 
 async def stream_api_query(message: str):

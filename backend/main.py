@@ -7,13 +7,13 @@ No tool definitions, no prompts, no agent logic, no database calls.
 import asyncio
 import sys
 
+# Windows-specific asyncio policy — must be FIRST before any other imports
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Windows-specific asyncio policy (must be set before any async code runs)
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,4 +52,4 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, loop="asyncio")

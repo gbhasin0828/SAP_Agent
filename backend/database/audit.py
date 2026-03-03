@@ -8,6 +8,7 @@ import sqlite3
 from datetime import datetime
 
 from database.connection import get_connection
+from database.crud import get_record_by_id, update_record
 
 
 def log_audit_entry(
@@ -59,12 +60,46 @@ def get_schema_info() -> dict:
         ).fetchall()
         for row in tables:
             table = row["name"]
+            """
+            PRAGMA table_info` is a SQLite special command that returns metadata about a table's columns — name, type, whether it's nullable etc. Result for `equipment` looks like:
+            [{"name": "id", "type": "TEXT"}, {"name": "description", "type": "TEXT"}, ...]
+            """
             cols = conn.execute(f"PRAGMA table_info({table})").fetchall()
             schema[table] = [
                 {"column": c["name"], "type": c["type"]}
                 for c in cols
             ]
     return schema
+
+
+_SYSTEM_FIELDS = {"id", "created_at", "updated_at", "rowid"}
+
+
+def execute_write_query(
+    table: str,
+    record_id,
+    updates: dict,
+    id_column: str = "id",
+) -> dict:
+    """
+    Update a record using only the fields that already exist on it,
+    excluding system-managed columns (id, created_at, updated_at, rowid).
+
+    Returns the updated record dict, or {"error": "..."} on failure.
+    """
+    existing = get_record_by_id(table, record_id, id_column)
+    if existing is None:
+        return {"error": "Record not found"}
+
+    allowed_fields = set(existing.keys()) - _SYSTEM_FIELDS
+
+    try:
+        result = update_record(table, record_id, updates, allowed_fields, id_column)
+        if result is None:
+            return {"error": "Record not found"}
+        return result
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
 def execute_natural_query(sql: str, params: list = None) -> list[dict] | dict:
