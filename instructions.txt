@@ -1,16 +1,16 @@
 ################################################################################################################
 
 TERMINAL 1
-cd C:\Users\Work\Desktop\Demos\SAP_Agent\backend
-venv\Scripts\activate
-python sap_main.py
+
+cd C:\Users\Work\Desktop\Demos\SAP_Agent\frontend
+python -m http.server 8001
+
 
 TERMINAL 2
-cd C:\Users\Work\Desktop\Demos\SAP_Agent\frontend
-python -m http.server 8001
+cd C:\Users\Work\Desktop\Demos\SAP_Agent\backend
+venv\Scripts\activate
+python main.py
 
-cd C:\Users\Work\Desktop\Demos\SAP_Agent\frontend
-python -m http.server 8001
 
 
 http://localhost:8001/sap_agent.html
@@ -43,6 +43,12 @@ Demo 4 — HITL Posting (the safety demo):
 
 ###########################################################################################################################
 
+User types in API Mode:
 
+"Show me all equipment in PLANT-001, then update the status of EQ-12347 from Inactive to Active"
+
+Then switches to Browser Mode and types:
+
+"Login to SAP, find EQ-12347 and post a document for it"
 
 
