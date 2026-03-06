@@ -824,7 +824,7 @@
           msgApproval(
             (typeof evt.summary === 'string' ? evt.summary : JSON.stringify(evt.summary)) || evt.content || evt.message || 'Please review this SAP action.',
             async () => {
-              await streamRequest('http://localhost:8000/approve-sap-post', {});
+              await streamRequest('https://sap-agent.icypond-5b28fedb.eastus.azurecontainerapps.io/approve-sap-post', {});
               setInputEnabled(true);
             },
             () => {
@@ -876,7 +876,7 @@
           d.querySelector('#updateApproveBtn').addEventListener('click', async () => {
             d.querySelector('.approval-actions').innerHTML = '<span style="color:#f0c040;font-size:12px;">Processing...</span>';
             try {
-              await streamRequest('http://localhost:8000/approve-sap-update', {
+              await streamRequest('https://sap-agent.icypond-5b28fedb.eastus.azurecontainerapps.io/approve-sap-update', {
                 equipment_id: equipmentId,
                 updates: updates,
               });
@@ -970,8 +970,8 @@
       updateStatus('Agent is running...', null);
 
       const endpoint = currentMode === 'api'
-        ? 'http://localhost:8000/api/query'
-        : 'http://localhost:8000/sap-chat';
+        ? 'https://sap-agent.icypond-5b28fedb.eastus.azurecontainerapps.io/api/query'
+        : 'https://sap-agent.icypond-5b28fedb.eastus.azurecontainerapps.io/sap-chat';
 
       try {
         await streamRequest(endpoint, { message: text });

@@ -1,0 +1,13 @@
+properties:
+  template:
+    volumes:
+      - name: sapdb
+        storageType: AzureFile
+        storageName: sapdbstorage
+    containers:
+      - name: sap-agent
+        image: sapagentregistry.azurecr.io/sap-agent:latest
+        volumeMounts:
+          - volumeName: sapdb
+            mountPath: /app/sap_equipment.db
+            subPath: sap_equipment.db
