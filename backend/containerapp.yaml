@@ -1,0 +1,22 @@
+properties:
+  template:
+    volumes:
+      - name: sapdb
+        storageType: AzureFile
+        storageName: sapdbstorage
+    containers:
+      - name: sap-agent
+        image: sapagentregistry.azurecr.io/sap-agent:latest
+        env:
+          - name: ANTHROPIC_API_KEY
+            secretRef: anthropic-key
+          - name: SAP_URL
+            value: https://happy-dune-0c054a60f.2.azurestaticapps.net/fake_sap.html
+          - name: SAP_USERNAME
+            value: demo
+          - name: SAP_PASSWORD
+            value: demo123
+        volumeMounts:
+          - volumeName: sapdb
+            mountPath: /app/sap_equipment.db
+            subPath: sap_equipment.db
